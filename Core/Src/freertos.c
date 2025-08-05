@@ -91,7 +91,7 @@ const osThreadAttr_t ledTask_attributes = {
 osThreadId_t sdCardTaskHandle;
 const osThreadAttr_t sdCardTask_attributes = {
   .name = "sdCardTask",
-  .stack_size = 4096 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 
@@ -108,6 +108,18 @@ void StartLedTask(void *argument);
 void StartSDCardTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
+
+/* Hook prototypes */
+void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName);
+
+/* USER CODE BEGIN 4 */
+void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName)
+{
+   /* Run time stack overflow checking is performed if
+   configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2. This hook function is
+   called if a stack overflow is detected. */
+}
+/* USER CODE END 4 */
 
 /**
   * @brief  FreeRTOS initialization
@@ -172,52 +184,53 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for (;;) {
     // Simple system monitoring - can be used for watchdog, statistics, etc.
-    osDelay(1000); // Run every 1 second
+    osDelay(1000);  // Run every 1 second
   }
   /* USER CODE END StartDefaultTask */
 }
 
 /* USER CODE BEGIN Header_StartKeyTask */
 /**
-* @brief Function implementing the keyTask thread.
-* @param argument: Not used
-* @retval None
-*/
+ * @brief Function implementing the keyTask thread.
+ * @param argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_StartKeyTask */
 void StartKeyTask(void *argument)
 {
   /* USER CODE BEGIN StartKeyTask */
   (void)argument;
   Key_State_t current_key_state;
-  
-  for(;;)
-  {
+
+  for (;;) {
     // Read current key state (assuming active low)
-    current_key_state = (HAL_GPIO_ReadPin(KEY_GPIO_Port, KEY_Pin) == GPIO_PIN_RESET) ? 
-                        KEY_STATE_PRESSED : KEY_STATE_RELEASED;
-    
+    current_key_state =
+        (HAL_GPIO_ReadPin(KEY_GPIO_Port, KEY_Pin) == GPIO_PIN_RESET)
+            ? KEY_STATE_PRESSED
+            : KEY_STATE_RELEASED;
+
     // Check for key press (rising edge from released to pressed)
-    if (current_key_state == KEY_STATE_PRESSED && last_key_state == KEY_STATE_RELEASED)
-    {
+    if (current_key_state == KEY_STATE_PRESSED &&
+        last_key_state == KEY_STATE_RELEASED) {
       // Key pressed, switch to next mode
       current_led_mode = (current_led_mode + 1) % LED_MODE_COUNT;
-      
+
       // Wait for debounce
       osDelay(KEY_DEBOUNCE_TIME);
     }
-    
+
     last_key_state = current_key_state;
-    osDelay(10); // Check key every 10ms
+    osDelay(10);  // Check key every 10ms
   }
   /* USER CODE END StartKeyTask */
 }
 
 /* USER CODE BEGIN Header_StartLedTask */
 /**
-* @brief Function implementing the ledTask thread.
-* @param argument: Not used
-* @retval None
-*/
+ * @brief Function implementing the ledTask thread.
+ * @param argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_StartLedTask */
 void StartLedTask(void *argument)
 {
@@ -225,43 +238,41 @@ void StartLedTask(void *argument)
   (void)argument;
   uint32_t led_counter = 0;
   GPIO_PinState led_state = GPIO_PIN_RESET;
-  
-  for(;;)
-  {
-    switch(current_led_mode)
-    {
+
+  for (;;) {
+    switch (current_led_mode) {
       case LED_MODE_OFF:
         HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET);
         osDelay(100);
         break;
-        
+
       case LED_MODE_SLOW_BLINK:
         led_counter++;
-        if (led_counter >= (LED_SLOW_BLINK_PERIOD / 100))
-        {
-          led_state = (led_state == GPIO_PIN_RESET) ? GPIO_PIN_SET : GPIO_PIN_RESET;
+        if (led_counter >= (LED_SLOW_BLINK_PERIOD / 100)) {
+          led_state =
+              (led_state == GPIO_PIN_RESET) ? GPIO_PIN_SET : GPIO_PIN_RESET;
           HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, led_state);
           led_counter = 0;
         }
         osDelay(100);
         break;
-        
+
       case LED_MODE_FAST_BLINK:
         led_counter++;
-        if (led_counter >= (LED_FAST_BLINK_PERIOD / 100))
-        {
-          led_state = (led_state == GPIO_PIN_RESET) ? GPIO_PIN_SET : GPIO_PIN_RESET;
+        if (led_counter >= (LED_FAST_BLINK_PERIOD / 100)) {
+          led_state =
+              (led_state == GPIO_PIN_RESET) ? GPIO_PIN_SET : GPIO_PIN_RESET;
           HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, led_state);
           led_counter = 0;
         }
         osDelay(100);
         break;
-        
+
       case LED_MODE_ON:
         HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_SET);
         osDelay(100);
         break;
-        
+
       default:
         current_led_mode = LED_MODE_OFF;
         break;
@@ -272,10 +283,10 @@ void StartLedTask(void *argument)
 
 /* USER CODE BEGIN Header_StartSDCardTask */
 /**
-* @brief Function implementing the sdCardTask thread.
-* @param argument: Not used
-* @retval None
-*/
+ * @brief Function implementing the sdCardTask thread.
+ * @param argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_StartSDCardTask */
 void StartSDCardTask(void *argument)
 {
