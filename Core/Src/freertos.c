@@ -239,6 +239,8 @@ void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName) {
   /* Run time stack overflow checking is performed if
   configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2. This hook function is
   called if a stack overflow is detected. */
+  (void)xTask;
+  (void)pcTaskName;
 }
 /* USER CODE END 4 */
 
@@ -761,6 +763,7 @@ void SmartRefresh_Init(SmartRefresh_t *sr) {
 // Calculate a simple hash for the current frame state
 uint32_t SmartRefresh_CalculateFrameHash(LCD_Mode_t mode, uint32_t frame, uint8_t *colors, uint8_t color_count) {
   uint32_t hash = 0;
+  (void)colors;  // Parameter reserved for future use
   
   // Hash the mode
   hash = hash * HASH_PRIME + (uint32_t)mode;
