@@ -27,7 +27,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "lcd.h"
+#include "lcd_init.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -55,11 +56,98 @@
 void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
-
+void LCD_ShowAnimation(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+// LCD动画演示函数
+void LCD_ShowAnimation(void) {
+    // 定义颜色数组
+    uint16_t colors[] = {RED, GREEN, BLUE, YELLOW, CYAN, MAGENTA, WHITE, BLACK};
+    uint8_t color_count = sizeof(colors) / sizeof(colors[0]);
+    
+    // 彩色方块动画
+    for(int i = 0; i < 3; i++) {
+        for(uint8_t c = 0; c < color_count; c++) {
+            LCD_Fill(0, 0, LCD_W, LCD_H, colors[c]);
+            HAL_Delay(300);
+        }
+    }
+    
+    // 渐变条纹动画
+    for(int frame = 0; frame < 50; frame++) {
+        for(int y = 0; y < LCD_H; y += 4) {
+            uint16_t color = (frame + y/4) % color_count;
+            LCD_Fill(0, y, LCD_W, y + 4, colors[color]);
+        }
+        HAL_Delay(50);
+    }
+    
+    // 同心方块动画
+    for(int frame = 0; frame < 30; frame++) {
+        LCD_Fill(0, 0, LCD_W, LCD_H, BLACK);
+        
+        int size = frame * 4;
+        if(size > LCD_W/2) size = LCD_W - (frame - LCD_W/8) * 4;
+        
+        int x = (LCD_W - size) / 2;
+        int y = (LCD_H - size) / 2;
+        
+        uint16_t color = colors[frame % color_count];
+        LCD_Fill(x, y, x + size, y + size, color);
+        
+        HAL_Delay(100);
+    }
+    
+    // 彩色网格动画
+    for(int frame = 0; frame < 20; frame++) {
+        for(int x = 0; x < LCD_W; x += 20) {
+            for(int y = 0; y < LCD_H; y += 20) {
+                uint16_t color = colors[(x/20 + y/20 + frame) % color_count];
+                LCD_Fill(x, y, x + 20, y + 20, color);
+            }
+        }
+        HAL_Delay(150);
+    }
+    
+    // 圆形波纹动画
+    for(int frame = 0; frame < 40; frame++) {
+        LCD_Fill(0, 0, LCD_W, LCD_H, BLACK);
+        
+        int center_x = LCD_W / 2;
+        int center_y = LCD_H / 2;
+        
+        for(int radius = 5; radius < 120; radius += 15) {
+            int animated_radius = radius + (frame * 2) % 30 - 15;
+            if(animated_radius > 5 && animated_radius < 120) {
+                uint16_t color = colors[(radius/15 + frame/5) % color_count];
+                Draw_Circle(center_x, center_y, animated_radius, color);
+            }
+        }
+        HAL_Delay(80);
+    }
+    
+    // 文字显示动画
+    LCD_Fill(0, 0, LCD_W, LCD_H, BLACK);
+    
+    // 显示彩色文字
+    const char* text = "TKX LCD";
+    int text_x = 60;
+    int text_y = 100;
+    
+    for(int i = 0; text[i] != '\0'; i++) {
+        uint16_t color = colors[i % color_count];
+        LCD_ShowChar(text_x + i * 24, text_y, text[i], color, BLACK, 32, 0);
+        HAL_Delay(200);
+    }
+    
+    HAL_Delay(2000);
+    
+    // 最终显示蓝色
+    LCD_Fill(0, 0, LCD_W, LCD_H, BLUE);
+}
 
 /* USER CODE END 0 */
 
@@ -96,7 +184,14 @@ int main(void)
   MX_SDIO_SD_Init();
   MX_SPI1_Init();
   MX_FATFS_Init();
+  MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
+  // 初始化LCD
+  LCD_Init();
+  
+  // 显示动画
+  LCD_ShowAnimation();
+  
   HAL_SD_DeInit(&hsd);  // 先反初始化
 
   // 按照正确的流程重新配置并初始化
@@ -168,7 +263,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV4;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
   {
